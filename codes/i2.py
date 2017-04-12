@@ -3,6 +3,8 @@ import os
 import sys
 
 from prints import *
+from file_processing import parse_input
+
 
 DOT_DELIMITER = '.'
 COMMA_DELIMITER = ','
@@ -14,14 +16,9 @@ BITS_IN_OCT = 255
 verbose = False
 
 
-def cls():
-    os.system("cls" if os.name == "nt" else "clear")
-
 
 def convert_slash_mask_to_address(mask):
     address_mask = []
-
-    mask = int(mask[1:])
 
     for i in range(NUMBER_OF_OCTS):
         if mask >= 8:
@@ -31,7 +28,7 @@ def convert_slash_mask_to_address(mask):
             address_mask.append(int("1" * mask + "0" * (8 - mask), 2))
             mask = 0
         else:
-            address_mask.append(0)
+            address_mask.append(int(0))
 
     return address_mask
 
@@ -44,7 +41,7 @@ def find_optimal_mask(host_demand):
         power += 1
         host_capacity = (2 ** power) - 2
 
-    return convert_slash_mask_to_address("/" + str(IP_V4_LENGTH - power))
+    return convert_slash_mask_to_address(int(IP_V4_LENGTH - power))
 
 
 def add_full_range(network, mask):
@@ -93,44 +90,51 @@ def is_network_valid(network_to_validate, whole_network, mask):
     return True
 
 
-def calculate_networks(network, mask, hosts):
+
+
+def calculate_available_addresses(hosts, network, mask):
+    
     whole_network = list(network)
+    
     result = []
 
     current_network = list(network)
-    for host_number in hosts:
-        current_mask = find_optimal_mask(host_number)
-        result.append((current_network, current_mask))
 
-        current_network = calculate_next_network(current_network, current_mask)
+
+    for host in hosts:
+
+        host['mask'] = find_optimal_mask(host['number'])
+
+        print host['mask']
+
+        host['NA'] = list(current_network)
+
+        current_network = calculate_next_network(current_network, host['mask'])
+
+        # calculate_next_network(current_network, host['mask'])
+ 
         if not is_network_valid(current_network, whole_network, mask):
             raise Exception("Number of hosts exceeded capacity of given network")
 
-    return result
+        network_copy = list(host['NA'])
 
-
-def calculate_available_addresses(networks):
-    networks_count = len(networks)
-    available_addresses = []
-
-    for i in range(networks_count):
-        network_copy = list(networks[i][0])
-        mask_copy = list(networks[i][1])
+        mask_copy = list(host['mask'])
 
         broadcast_address = add_full_range(network_copy, mask_copy)[0]
+
         add_one_to_network(network_copy)
+        
         check_overflow(network_copy)
-        first_address = network_copy
-        last_address = list(broadcast_address)
-        subtract_one_from_network(last_address)
+        
+        host['first'] = list(network_copy)
+        
+        host['BA'] = list(broadcast_address)
 
-        available_addresses.append((first_address, last_address, broadcast_address))
+        subtract_one_from_network(broadcast_address)
 
-    return available_addresses
+        host['last'] = list(broadcast_address)
 
-
-def convert_ip_to_str(address):
-    return DOT_DELIMITER.join(str(x) for x in address)
+    return hosts
 
 
 def correct_network(address, mask):
@@ -141,8 +145,6 @@ def correct_network(address, mask):
 
 
 def check_network(address, mask):
-    if verbose:
-        print_info("Checking network")
 
     network_is_valid = is_network_valid(address, address, mask)
     if not network_is_valid:
@@ -151,36 +153,24 @@ def check_network(address, mask):
         print("\n")
         address = correct_network(address, mask)
 
-    if verbose and network_is_valid:
-        print_info("Network is valid")
-        print("\n")
     return address
 
 
-def convert_oct_to_bin(oct):
-    oct = bin(oct)[2:]
-    l = len(oct)
-    if l < 8:
-        oct = "0" * (8 - l) + oct
-    return oct
 
 def main():
     cls()
     network, mask, hosts = parse_input()
 
-    network = convert_input_to_array(network, DOT_DELIMITER)
-    hosts = convert_input_to_array(hosts, COMMA_DELIMITER)
-    
-    network = check_network(network, mask)
+    mask = convert_slash_mask_to_address(mask)
 
-    hosts.sort(reverse=True)
+    network = correct_network(network, mask)
 
-    if verbose:
-        print_info("Calculating networks")
-        print("")
-    calculated_networks = calculate_networks(network, mask, hosts)
-    available_addresses = calculate_available_addresses(calculated_networks)
-    print_result(calculated_networks, hosts, available_addresses)
+    hosts.sort(key=lambda x: x['number'], reverse=True)
+
+    hosts = calculate_available_addresses(hosts,network, mask)
+    for host in hosts:
+        print host
+    # print_result(calculated_networks, hosts, available_addresses)
 
 
 main()

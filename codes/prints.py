@@ -1,4 +1,3 @@
-import getopt
 import os
 import sys
 
@@ -12,7 +11,20 @@ BITS_IN_OCT = 255
 verbose = False
 
 
+def cls():
+    os.system("cls" if os.name == "nt" else "clear")
 
+
+
+def convert_ip_to_str(address):
+    return DOT_DELIMITER.join(str(x) for x in address)
+
+def convert_oct_to_bin(oct):
+    oct = bin(oct)[2:]
+    l = len(oct)
+    if l < 8:
+        oct = "0" * (8 - l) + oct
+    return oct
 def print_help():
     print("VLSM subnetting tool for IPv4")
     print('')

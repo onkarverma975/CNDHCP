@@ -1,4 +1,4 @@
-
+#This file is used to extract information from the subnets file and then pass it on back to the server
 def get_info(data):
     data = data.split('\n')[0]
 
@@ -23,7 +23,13 @@ def parse_input():
         line = line.split(':')
         temp = {'name':line[0]
         ,'number':int(line[1])
-        ,'mac':''}
+        ,'mac':''
+        ,'mask':[]
+        ,'NA':[]
+        ,'BA':[]
+        ,'first':[]
+        ,'last':[]
+        }
         names.append(temp)
 
     for i in xrange(n_hosts):
@@ -37,4 +43,3 @@ def parse_input():
     f.close()
 
     return network, mask, names
-print parse_input()
