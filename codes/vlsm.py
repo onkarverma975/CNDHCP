@@ -1,8 +1,6 @@
 import getopt
 import os
 import sys
-
-from prints import *
 from file_processing import parse_input
 
 
