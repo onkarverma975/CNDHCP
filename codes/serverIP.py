@@ -226,21 +226,41 @@ class ServerIPs():
         for host in self.hosts:
             if host['mac']==mac:
                 if not add_IP(host['lac']):
-                    return 'overflow'
+                    return 'overflow', None
                 if host['lac'] == host['last']:
-                    return 'overflow'
-                return '.'.join(map(str, host['lac']))
-        return 'not_found'
+                    return 'overflow', None
+                return '.'.join(map(str, host['lac'])), host
+        return 'not_found', None
         
     def newIP(self,mac):
         if not add_IP(self.lac):
             #run out of ips
+            return 'overflow'
             pass
             return
         self.extras.append((('.'.join(map(str, self.lac))),mac))
         return '.'.join(map(str, self.lac))
+
     def new_client(self,mac):
+        
         new_ip = self.getIP(mac)
+        
+        ret = {}
+
         if new_ip == 'not_found':
-            new_ip = newIP(mac)
-        return new_ip
+            ret_msg = self.newIP(mac)
+            if ret_msg == 'overflow':
+                ret_type='er'
+                ret_msg = 'No more IPs available in Network'
+            else:
+                ret_type='acm'
+
+        else if new_ip == 'overflow'
+            ret_type='er'
+            ret_msg = 'No more IPs available in Sub-Network'
+        else:
+            ret_type=''
+        ret['type'] = ret_type
+        ret['msg'] = ret_msg
+
+        return ret

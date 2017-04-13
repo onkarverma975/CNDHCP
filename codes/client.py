@@ -2,21 +2,18 @@ import argparse
 import socket
 import struct
 import random
-import uuid
 import json
+import sys
+
 MAX_BYTES=65535
 
-def getMacInByte():
-    mac=str(hex(uuid.getnode()))
-    mac = mac[2:]
-    while len(mac) < 12:
-        mac='0'+mac
-    macb=b''
-    for i in range( 0 , 12 , 2):
-        m=int(mac[i:i+2],16)
-        macb+=struct.pack('!B',m)
-    # return macb
-    return '80:0D:78:81:14:D1'
+import fcntl, socket, struct
+
+def getHwAddr(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15]))
+    return ':'.join(['%02x' % ord(char) for char in info[18:24]])
+
 
 
 def IPInByte(ip):
@@ -32,8 +29,8 @@ def assignIP(ip):
     return ip
 
 class DHCPDiscover:
-    def __init__(self):
-        self.mac    = getMacInByte()        
+    def __init__(self, mac):
+        self.mac    = mac
     def build(self):
         print self.mac
         obj = {'mac':self.mac,'type':'offer'}
@@ -42,13 +39,13 @@ class DHCPDiscover:
         return json.dumps(obj)        
 
 
-def client():
+def client(mac):
     dsocket=socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
     dsocket.setsockopt(socket.SOL_SOCKET , socket.SO_BROADCAST, 1)
 
     dsocket.bind(('', 6800 ))
 
-    discoverPackage=DHCPDiscover()
+    discoverPackage=DHCPDiscover(mac)
     Discoverdata = discoverPackage.build()
     dsocket.sendto( Discoverdata , ('<broadcast>', 6700))
     print('DHCP Discover has sent. Wating for reply...\n')
@@ -84,3 +81,15 @@ def client():
     #         dsocket.close()
     #         break
             
+
+def main():
+	inp = sys.argv
+	print 
+	if len(sys.argv) == 1:
+		client(str(getHwAddr('enp2s0')).upper())
+		pass
+	elif len(sys.argv)==3 and inp[1]=='-m':
+		client(str(inp[2]).upper())
+		pass
+
+main()

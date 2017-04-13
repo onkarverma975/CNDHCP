@@ -24,41 +24,23 @@ def fun_server():
         obj = json.loads(data)
 
         if obj['type']=='offer':
-            
-            ret = {}
-            
-            ret['clientIP']=server.newIP(obj['mac'])
+                        
+            ret = server.new_client(obj['mac'])
             
             ret_str = json.dumps(ret)
             dsocket.sendto(ret_str,('<broadcast>',6800))
-            print 'sent back the reposone'
+            print 'sent back the reposone' ret
 
-        # if(data[240:].find(b'\x35\x01\x01')!=-1):
-        #     offerAddr=b'\xc0\xa8'
-        #     for i in range(2):
-        #         t=random.randint(0,255)
-        #         offerAddr+=struct.pack('!B',t)
-        #     payload=b'\x02'+data[1:16]
-        #     payload+=offerAddr
-        #     payload+=data[20:240]
-        #     payload+=b'\x35\x01\x02'
-        #     payload+=b'\xff'
-        #     dsocket.sendto(payload,('<broadcast>',68))
 
-        # #Find Request Package
-        # if(data[240:].find(b'\x35\x01\x03')!=-1):
-        #     selfIP=IPInByte(socket.gethostbyname(socket.gethostname()))
-        #     pat=b'\x36\x04'+selfIP              # request identify
-        #     if(data[240:].find(pat)!=-1):
-        #         if(data[240:].find(b'\x32\x04')!=-1):
-        #             find=data[240:].find(b'\x32\x04')
-        #             requestIP=data[240:][find+2:find+6]
-        #             payload=b'\x02'+data[1:16]
-        #             payload+=requestIP
-        #             payload+=data[20:240]
-        #             payload+=b'\x35\x01\x05'
-        #             payload+=b'\xff'
-        #             dsocket.sendto(payload,('<broadcast>',68))
-        #     else:
-        #         continue
 
+def main():
+    inp = sys.argv
+    print 
+    if len(sys.argv) == 1:
+        client(str(getHwAddr('enp2s0')).upper())
+        pass
+    elif len(sys.argv)==3 and inp[1]=='-m':
+        client(str(inp[2]).upper())
+        pass
+
+main()
