@@ -56,32 +56,29 @@ def client(mac):
         if data:
             serverIP=address
             res_obj = json.loads(data)
-            assignIP(res_obj['clientIP'])
+            print_response(res_obj)
+           
 
 
-    # while True:
-    #     data, address = dsocket.recvfrom(MAX_BYTES)
-    #     serverIP=address[0]
-    #     if transID==data[4:8]:
-    #         requestIP=data[16:20]
-    #         data=b''
-    #         data=Discoverdata[:240]
-    #         data+=b'\x35\x01\x03'                  # Option53: length1 , type 3 DHCP Request 
-    #         data+=b'\x32\x04'+requestIP          # Option 50: length 4 , request IP
-    #         data+=b'\x36\x04'+IPInByte(address[0]) # Option 54: length 4 , identifier
-    #         data+=b'\xff'
-    #         dsocket.sendto(data, ('<broadcast>', 67))
-    #         break
+def print_response(obj): 
+	if obj['type']=='er':
+		print 'Error'
+	elif obj['type']=='ach':
+		print 'Lab: ', obj['LAB']
+		print obj['CIDR']
+		print obj['NA']
+		print obj['BA']
+		print obj['GATE']
+		print obj['DNS']
+		print obj['IP']
 
-    # while True:
-    #     data, address = dsocket.recvfrom(MAX_BYTES)
-    #     if transID==data[4:8] and data.find(b'\x35\x01\x05') and serverIP==address[0]:
-    #         RequestIP= '.'.join(map(lambda x: str(x),data[16:20]))
-    #         print("Request IP: {}".format(RequestIP))
-    #         dsocket.close()
-    #         break
-            
-
+	elif obj['type']=='acn':
+		print obj['CIDR']
+		print obj['NA']
+		print obj['BA']
+		# print obj['GATE']
+		# print obj['DNS']
+		print obj['IP']
 def main():
 	inp = sys.argv
 	print 

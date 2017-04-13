@@ -12,14 +12,16 @@ BITS_IN_OCT = 255
 
 def get_info(data):
     data = data.split('\n')[0]
-
     temp = data.split('/')
     ip = temp[0]
     mask = int(temp[1])
     ip = ip.split('.')
     ip = list(map(int, ip))
     return ip, mask
+
+
 def add_IP(lac):
+    print lac
     lac[3]+=1
     if lac[3]>255:
         lac[3]=0
@@ -60,7 +62,9 @@ def find_optimal_mask(host_demand):
         power += 1
         host_capacity = (2 ** power) - 2
 
-    return convert_slash_mask_to_address(int(IP_V4_LENGTH - power))
+    return convert_slash_mask_to_address(int(IP_V4_LENGTH - power)), int(IP_V4_LENGTH - power)
+
+
 
 
 def add_full_range(network, mask):
@@ -77,9 +81,10 @@ def check_overflow(network):
     for i in range(NUMBER_OF_OCTS - 1, -1, -1):
         if network[i] > BITS_IN_OCT:
             if i == 0:
-                raise Exception("Operation exceeded IPv4 range")
+                return "Operation exceeded IPv4 range"
             network[i] -= (BITS_IN_OCT + 1)
             network[i - 1] += 1
+    return "good"
 
 
 def add_one_to_network(network):
@@ -109,8 +114,6 @@ def is_network_valid(network_to_validate, whole_network, mask):
     return True
 
 
-
-
 def calculate_available_addresses(hosts, network, mask):
     
     whole_network = list(network)
@@ -122,24 +125,27 @@ def calculate_available_addresses(hosts, network, mask):
 
     for host in hosts:
 
-        host['mask'] = find_optimal_mask(host['number'])
+        host['mask'], host['mask_int'] = find_optimal_mask(host['number'])
 
-        print host['mask']
+        # print host['mask_int']
 
         host['NA'] = list(current_network)
 
         current_network = calculate_next_network(current_network, host['mask'])
 
         # calculate_next_network(current_network, host['mask'])
- 
         if not is_network_valid(current_network, whole_network, mask):
-            raise Exception("Number of hosts exceeded capacity of given network")
+            return hosts,True, 'Number of hosts exceeded capacity of given network'
+
+            # raise Exception("Number of hosts exceeded capacity of given network")
 
         network_copy = list(host['NA'])
 
         mask_copy = list(host['mask'])
 
         broadcast_address = add_full_range(network_copy, mask_copy)[0]
+
+        host['lac']=list(network_copy)
 
         add_one_to_network(network_copy)
         
@@ -153,7 +159,7 @@ def calculate_available_addresses(hosts, network, mask):
 
         host['last'] = list(broadcast_address)
 
-    return hosts
+    return hosts, False, 'good'
 
 
 def correct_network(address, mask):
@@ -182,11 +188,22 @@ class ServerIPs():
         self.lac=[0,0,0,0]
         self.network=[]
         self.mask=[]
+        self.mask_int=0
         self.parse_input()
         self.network = correct_network(self.network, self.mask)
         self.hosts.sort(key=lambda x: x['number'], reverse=True)
-        self.hosts = calculate_available_addresses(self.hosts,self.network, self.mask)
+        self.hosts, self.error_flag, self.error_string = calculate_available_addresses(self.hosts, self.network, self.mask)
+
+        if self.error_flag:
+            return
+            
         self.lac = self.hosts[len(self.hosts)-1]['BA']
+        self.BA = add_full_range(list(self.network), list(self.mask))[0]
+    def fetch_error(self):
+        if self.error_flag:
+            return self.error_string
+        else:
+            return ''
     def parse_input(self):
         f= open("subnets.conf","r")
         contents = f.readline()
@@ -201,6 +218,7 @@ class ServerIPs():
             ,'number':int(line[1])
             ,'mac':''
             ,'mask':[]
+            ,'mask_int':0
             ,'NA':[]
             ,'BA':[]
             ,'first':[]
@@ -220,47 +238,74 @@ class ServerIPs():
                     host['mac']=line[0]
         f.close()
         self.network = network
+        self.mask_int = mask
         self.mask = convert_slash_mask_to_address(mask)
 
+
     def getIP(self,mac):
+        ret = {}
         for host in self.hosts:
+
             if host['mac']==mac:
+
                 if not add_IP(host['lac']):
-                    return 'overflow', None
+
+                    ret['type']='er'
+                    ret['msg'] = 'overflow', 'er'
+
+                    return ret
+
                 if host['lac'] == host['last']:
-                    return 'overflow', None
-                return '.'.join(map(str, host['lac'])), host
-        return 'not_found', None
+
+
+                    ret['type']='er'
+                    ret['msg'] = 'overflow'
+
+                    return 'overflow','er'
+
+                ret['type']='ach'
+                count=0
+                for i in xrange(0,4):
+                    count+=str(host['mask'][i]&255).count('1')
+                ret['CIDR']= '.'.join(map(str, host['lac'])) + '/' + str(host['mask_int'])
+                ret['NA'] = host['NA']
+                ret['LAB']= host['name']
+                ret['BA'] = host['BA']
+                ret['DNS'] = host['first']
+                ret['GATE'] = host['first']
+                ret['IP'] = host['lac']
+
+
+                return ret, 'got'
+
+        return {}, 'nf'
         
     def newIP(self,mac):
+        ret = {}
         if not add_IP(self.lac):
-            #run out of ips
-            return 'overflow'
-            pass
-            return
+            ret['type']='er'
+            ret['msg'] = 'overflow'
+
+            return 'overflow','er'
+
+        ret['type']='acn'
+        count=0
+        for i in xrange(0,4):
+            count+=str(self.mask[i]&255).count('1')
+        ret['CIDR']= '.'.join(map(str, self.network)) + '/' + str(self.mask_int)
+        ret['NA'] = self.network
+        ret['BA'] = self.BA
+        ret['IP'] = self.lac
         self.extras.append((('.'.join(map(str, self.lac))),mac))
-        return '.'.join(map(str, self.lac))
+
+        return ret,'hello'
+        # ret['DNS'] = host['first']
+        # ret['GATE'] = host['first']
 
     def new_client(self,mac):
         
-        new_ip = self.getIP(mac)
+        ret,msg = self.getIP(mac)
         
-        ret = {}
-
-        if new_ip == 'not_found':
-            ret_msg = self.newIP(mac)
-            if ret_msg == 'overflow':
-                ret_type='er'
-                ret_msg = 'No more IPs available in Network'
-            else:
-                ret_type='acm'
-
-        else if new_ip == 'overflow'
-            ret_type='er'
-            ret_msg = 'No more IPs available in Sub-Network'
-        else:
-            ret_type=''
-        ret['type'] = ret_type
-        ret['msg'] = ret_msg
-
+        if msg == 'nf':
+            ret, msg = self.newIP(mac)
         return ret

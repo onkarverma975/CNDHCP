@@ -12,6 +12,10 @@ def getIP(mac):
 
 def fun_server():
     server = ServerIPs()
+    if server.fetch_error() is not '':
+        print server.fetch_error()
+        print "Server closing due to error"
+        return
     dsocket=socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
     dsocket.setsockopt(socket.SOL_SOCKET , socket.SO_BROADCAST, 1)
     dsocket.bind(('',6700))
@@ -29,18 +33,7 @@ def fun_server():
             
             ret_str = json.dumps(ret)
             dsocket.sendto(ret_str,('<broadcast>',6800))
-            print 'sent back the reposone' ret
+            print 'sent back the reposone', ret
 
 
-
-def main():
-    inp = sys.argv
-    print 
-    if len(sys.argv) == 1:
-        client(str(getHwAddr('enp2s0')).upper())
-        pass
-    elif len(sys.argv)==3 and inp[1]=='-m':
-        client(str(inp[2]).upper())
-        pass
-
-main()
+fun_server()
