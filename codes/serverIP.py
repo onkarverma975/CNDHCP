@@ -1,8 +1,7 @@
+#This file is used to extract information from the subnets file and then pass it on back to the server
 import getopt
 import os
 import sys
-from file_processing import parse_input
-
 
 DOT_DELIMITER = '.'
 COMMA_DELIMITER = ','
@@ -11,8 +10,30 @@ IP_V4_LENGTH = 32
 NUMBER_OF_OCTS = IP_V4_LENGTH // 8
 BITS_IN_OCT = 255
 
-verbose = False
+def get_info(data):
+    data = data.split('\n')[0]
 
+    temp = data.split('/')
+    ip = temp[0]
+    mask = int(temp[1])
+    ip = ip.split('.')
+    ip = list(map(int, ip))
+    return ip, mask
+def add_IP(lac):
+    lac[3]+=1
+        if lac[3]>255:
+            lac[3]=0
+            lac[2]+=1
+        if lac[2]>255:
+            lac[2]=0
+            lac[1]+=1
+        if lac[1]>255:
+            lac[1]=0
+            lac[0]+=1
+        for i in lac:
+            if i>255:
+                return False
+        return True
 
 
 def convert_slash_mask_to_address(mask):
@@ -154,21 +175,70 @@ def check_network(address, mask):
     return address
 
 
+class ServerIPs():
+    def __init__(self):
+        self.hosts=[]
+        self.extras=[]
+        self.lac=[0,0,0,0]
+        self.network=[]
+        self.mask=[]
+        self.parse_input()
+        self.network = correct_network(self.network, self.mask)
+        self.hosts.sort(key=lambda x: x['number'], reverse=True)
+        self.hosts = calculate_available_addresses(self.hosts,self.network, self.mask)
+    def parse_input(self):
+        f= open("subnets.conf","r")
+        contents = f.readline()
+        network, mask = get_info(contents)
 
-def main():
-    cls()
-    network, mask, hosts = parse_input()
+        n_hosts = int(f.readline())
+        for i in xrange(n_hosts):
+            line = f.readline()
+            line = line.split(':')
+            temp = {
+            'name':line[0]
+            ,'number':int(line[1])
+            ,'mac':''
+            ,'mask':[]
+            ,'NA':[]
+            ,'BA':[]
+            ,'first':[]
+            ,'last':[]
+            ,'lac':[]
+            }
+            self.hosts.append(temp)
+            self.lac = temp['broadcast']
 
-    mask = convert_slash_mask_to_address(mask)
+        for i in xrange(n_hosts):
+            line = f.readline()
+            line = line.split(' ')
+            line[1] = line[1].split('\n')[0]
+            for host in self.hosts:
+                if host['name']==line[1]:
+                    host['mac']=line[0]
+        f.close()
+        self.network = network
+        self.mask = convert_slash_mask_to_address(mask)
 
-    network = correct_network(network, mask)
-
-    hosts.sort(key=lambda x: x['number'], reverse=True)
-
-    hosts = calculate_available_addresses(hosts,network, mask)
-    for host in hosts:
-        print host
-    # print_result(calculated_networks, hosts, available_addresses)
-
-
-main()
+    def getIP(self,mac):
+        for host in self.hosts:
+            if host['mac']==mac:
+                if not self.add_IP(host['lac'])
+                    return 'overflow'
+                if host['lac'] == host['last']:
+                    return 'overflow'
+                return '.'.join(map(str, host['lac']))
+        return 'not_found'
+        
+    def newIP(self,mac):
+        if not self.add_IP(self.lac):
+            #run out of ips
+            continue
+            return
+        self.extras.append(('.'.join(map(str, self.lac))),mac)
+        return '.'.join(map(str, self.lac))
+    def new_client(self,mac):
+        new_ip = self.getIP(mac)
+        if new_ip == 'not_found':
+            new_ip = newIP(mac)
+        return new_ip
