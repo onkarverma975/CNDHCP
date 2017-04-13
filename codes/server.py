@@ -4,19 +4,14 @@ import struct
 import random
 import uuid
 import json
+from serverIP import ServerIPs
 
 MAX_BYTES=65535
 def getIP(mac):
     return socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
 
-def IPInByte(ip):
-    ips=ip.split('.')
-    byte=b''
-    for i in range(4):
-        byte+=struct.pack('!B',int(ips[i]))
-    return byte
-
-def server():
+def fun_server():
+    server = ServerIPs()
     dsocket=socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
     dsocket.setsockopt(socket.SOL_SOCKET , socket.SO_BROADCAST, 1)
     dsocket.bind(('',6700))
@@ -32,7 +27,7 @@ def server():
             
             ret = {}
             
-            ret['clientIP']=getIP(obj['mac'])
+            ret['clientIP']=server.newIP(obj['mac'])
             
             ret_str = json.dumps(ret)
             dsocket.sendto(ret_str,('<broadcast>',6800))

@@ -16,7 +16,7 @@ def getMacInByte():
         m=int(mac[i:i+2],16)
         macb+=struct.pack('!B',m)
     # return macb
-    return '800D788114D1'
+    return '80:0D:78:81:14:D1'
 
 
 def IPInByte(ip):

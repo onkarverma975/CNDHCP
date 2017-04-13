@@ -21,19 +21,19 @@ def get_info(data):
     return ip, mask
 def add_IP(lac):
     lac[3]+=1
-        if lac[3]>255:
-            lac[3]=0
-            lac[2]+=1
-        if lac[2]>255:
-            lac[2]=0
-            lac[1]+=1
-        if lac[1]>255:
-            lac[1]=0
-            lac[0]+=1
-        for i in lac:
-            if i>255:
-                return False
-        return True
+    if lac[3]>255:
+        lac[3]=0
+        lac[2]+=1
+    if lac[2]>255:
+        lac[2]=0
+        lac[1]+=1
+    if lac[1]>255:
+        lac[1]=0
+        lac[0]+=1
+    for i in lac:
+        if i>255:
+            return False
+    return True
 
 
 def convert_slash_mask_to_address(mask):
@@ -186,6 +186,7 @@ class ServerIPs():
         self.network = correct_network(self.network, self.mask)
         self.hosts.sort(key=lambda x: x['number'], reverse=True)
         self.hosts = calculate_available_addresses(self.hosts,self.network, self.mask)
+        self.lac = self.hosts[len(self.hosts)-1]['BA']
     def parse_input(self):
         f= open("subnets.conf","r")
         contents = f.readline()
@@ -207,7 +208,8 @@ class ServerIPs():
             ,'lac':[]
             }
             self.hosts.append(temp)
-            self.lac = temp['broadcast']
+            self.lac = temp['BA']
+
 
         for i in xrange(n_hosts):
             line = f.readline()
@@ -223,7 +225,7 @@ class ServerIPs():
     def getIP(self,mac):
         for host in self.hosts:
             if host['mac']==mac:
-                if not self.add_IP(host['lac'])
+                if not add_IP(host['lac']):
                     return 'overflow'
                 if host['lac'] == host['last']:
                     return 'overflow'
@@ -231,11 +233,11 @@ class ServerIPs():
         return 'not_found'
         
     def newIP(self,mac):
-        if not self.add_IP(self.lac):
+        if not add_IP(self.lac):
             #run out of ips
-            continue
+            pass
             return
-        self.extras.append(('.'.join(map(str, self.lac))),mac)
+        self.extras.append((('.'.join(map(str, self.lac))),mac))
         return '.'.join(map(str, self.lac))
     def new_client(self,mac):
         new_ip = self.getIP(mac)
