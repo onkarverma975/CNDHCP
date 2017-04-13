@@ -1,12 +1,10 @@
 # CNDHCP
-This repo is underdevelopment
-there are three main code files
+usage
 
-i2.py (main)
-file_processing.py
-subnets.conf
+To start the server
 
-running instructions are 
+python server.py
 
-python i2.py
-make sure that subnets.conf is also in the same directory i2.py
+To start the client
+
+python client.py [-m <IP>]

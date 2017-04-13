@@ -5,6 +5,12 @@ import random
 import uuid
 import json
 from serverIP import ServerIPs
+import signal
+import sys
+def signal_handler(signal, frame):
+        print('Closing Server')
+        sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 MAX_BYTES=65535
 def getIP(mac):
@@ -19,10 +25,10 @@ def fun_server():
     dsocket=socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
     dsocket.setsockopt(socket.SOL_SOCKET , socket.SO_BROADCAST, 1)
     dsocket.bind(('',6700))
-    print('Listening at {}'.format(dsocket.getsockname()))
+    # print('Listening at {}'.format(dsocket.getsockname()))
     while True:
         data , address = dsocket.recvfrom(MAX_BYTES)
-        print 'received a request',data
+        # print 'received a request',data
 
         #Find Discover Package
         obj = json.loads(data)
@@ -33,7 +39,7 @@ def fun_server():
             
             ret_str = json.dumps(ret)
             dsocket.sendto(ret_str,('<broadcast>',6800))
-            print 'sent back the reposone', ret
+            # print 'sent back the reposone', ret
 
 
 fun_server()

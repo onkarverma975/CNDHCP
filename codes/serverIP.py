@@ -20,8 +20,19 @@ def get_info(data):
     return ip, mask
 
 
-def add_IP(lac):
-    print lac
+def check_sub(ip, net, mask):
+    out = 0
+    # print ip, net, mask
+    for i in xrange(0,4):
+        out = ip[i] ^ net[i]
+        # print out
+        out = out & mask[i]
+        # print out
+        if out !=0:
+            return False
+    return True
+
+def add_IP(lac,net,mask):
     lac[3]+=1
     if lac[3]>255:
         lac[3]=0
@@ -35,8 +46,19 @@ def add_IP(lac):
     for i in lac:
         if i>255:
             return False
-    return True
 
+
+    return check_sub(lac,net,mask)
+
+
+def add_full_range(network, mask):
+    network_copy = list(network)
+    mask_copy = list(mask)
+
+    for i in range(NUMBER_OF_OCTS):
+        mask_copy[i] ^= 255
+        network_copy[i] += mask_copy[i]
+    return network_copy, mask_copy
 
 def convert_slash_mask_to_address(mask):
     address_mask = []
@@ -66,17 +88,6 @@ def find_optimal_mask(host_demand):
 
 
 
-
-def add_full_range(network, mask):
-    network_copy = list(network)
-    mask_copy = list(mask)
-
-    for i in range(NUMBER_OF_OCTS):
-        mask_copy[i] ^= 255
-        network_copy[i] += mask_copy[i]
-    return network_copy, mask_copy
-
-
 def check_overflow(network):
     for i in range(NUMBER_OF_OCTS - 1, -1, -1):
         if network[i] > BITS_IN_OCT:
@@ -86,9 +97,6 @@ def check_overflow(network):
             network[i - 1] += 1
     return "good"
 
-
-def add_one_to_network(network):
-    network[NUMBER_OF_OCTS - 1] += 1
 
 
 def subtract_one_from_network(network):
@@ -105,6 +113,9 @@ def calculate_next_network(current_network, current_mask):
 
     return network
 
+
+def add_one_to_network(network):
+    network[NUMBER_OF_OCTS - 1] += 1
 
 def is_network_valid(network_to_validate, whole_network, mask):
     for i in range(NUMBER_OF_OCTS):
@@ -173,13 +184,8 @@ def check_network(address, mask):
 
     network_is_valid = is_network_valid(address, address, mask)
     if not network_is_valid:
-        print("[!] Mask does not cover the whole network [!]")
-        print("[!] Attempting to correct the mask by ANDing Network and MASK [!]")
-        print("\n")
         address = correct_network(address, mask)
-
     return address
-
 
 class ServerIPs():
     def __init__(self):
@@ -196,9 +202,13 @@ class ServerIPs():
 
         if self.error_flag:
             return
-            
-        self.lac = self.hosts[len(self.hosts)-1]['BA']
+
         self.BA = add_full_range(list(self.network), list(self.mask))[0]
+        # self.lac = list(self.network)
+        if len(self.hosts)-1>0:
+            self.lac = list(self.hosts[len(self.hosts)-1]['BA'])
+        else: 
+            self.lac = list(self.network)
     def fetch_error(self):
         if self.error_flag:
             return self.error_string
@@ -224,6 +234,7 @@ class ServerIPs():
             ,'first':[]
             ,'last':[]
             ,'lac':[]
+            ,'count':0
             }
             self.hosts.append(temp)
             self.lac = temp['BA']
@@ -248,32 +259,34 @@ class ServerIPs():
 
             if host['mac']==mac:
 
-                if not add_IP(host['lac']):
+                if not add_IP(host['lac'], host['NA'], host['mask']):
 
                     ret['type']='er'
-                    ret['msg'] = 'overflow', 'er'
+                    ret['msg'] = 'No more IPs available in the subnet'
+                    ret['code']=1
 
-                    return ret
+                    return ret, 'er'
 
-                if host['lac'] == host['last']:
+                if host['count'] > host['number']:
 
 
                     ret['type']='er'
-                    ret['msg'] = 'overflow'
+                    ret['code']=2
+                    ret['msg'] = 'You have exceeded you limit, IP not assigned'
 
-                    return 'overflow','er'
+                    return ret,'er'
 
                 ret['type']='ach'
                 count=0
                 for i in xrange(0,4):
                     count+=str(host['mask'][i]&255).count('1')
                 ret['CIDR']= '.'.join(map(str, host['lac'])) + '/' + str(host['mask_int'])
-                ret['NA'] = host['NA']
+                ret['NA'] = '.'.join(map(str, host['NA']))
                 ret['LAB']= host['name']
-                ret['BA'] = host['BA']
-                ret['DNS'] = host['first']
-                ret['GATE'] = host['first']
-                ret['IP'] = host['lac']
+                ret['BA'] = '.'.join(map(str, host['BA']))
+                ret['DNS'] = '.'.join(map(str, host['first']))
+                ret['GATE'] = '.'.join(map(str, host['first']))
+                host['count']+=1
 
 
                 return ret, 'got'
@@ -282,20 +295,20 @@ class ServerIPs():
         
     def newIP(self,mac):
         ret = {}
-        if not add_IP(self.lac):
+        if not add_IP(self.lac, self.network, self.mask):
+            ret['code']=3
             ret['type']='er'
-            ret['msg'] = 'overflow'
+            ret['msg'] = 'No more IPs available for non Lab PCs'
 
-            return 'overflow','er'
+            return ret,'er'
 
         ret['type']='acn'
         count=0
         for i in xrange(0,4):
             count+=str(self.mask[i]&255).count('1')
-        ret['CIDR']= '.'.join(map(str, self.network)) + '/' + str(self.mask_int)
-        ret['NA'] = self.network
-        ret['BA'] = self.BA
-        ret['IP'] = self.lac
+        ret['CIDR']= '.'.join(map(str, self.lac)) + '/' + str(self.mask_int)
+        ret['NA'] = '.'.join(map(str, self.network))
+        ret['BA'] = '.'.join(map(str, self.BA))
         self.extras.append((('.'.join(map(str, self.lac))),mac))
 
         return ret,'hello'

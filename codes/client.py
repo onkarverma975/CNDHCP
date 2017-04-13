@@ -24,10 +24,6 @@ def IPInByte(ip):
     return byte
 
 
-def assignIP(ip):
-    print 'set the ip as',ip
-    return ip
-
 class DHCPDiscover:
     def __init__(self, mac):
         self.mac    = mac
@@ -51,18 +47,18 @@ def client(mac):
     print('DHCP Discover has sent. Wating for reply...\n')
     res_str=''
     serverIP=[]
-    while True:
-        data, address = dsocket.recvfrom(MAX_BYTES)
-        if data:
-            serverIP=address
-            res_obj = json.loads(data)
-            print_response(res_obj)
-           
+    dsocket.settimeout(2)
+    data, address = dsocket.recvfrom(MAX_BYTES)
+    if data:
+        serverIP=address
+        res_obj = json.loads(data)
+        print_response(res_obj)
+       
 
 
 def print_response(obj): 
 	if obj['type']=='er':
-		print 'Error'
+		print 'Error: ', obj['msg'], obj['code']
 	elif obj['type']=='ach':
 		print 'Lab: ', obj['LAB']
 		print obj['CIDR']
@@ -70,7 +66,6 @@ def print_response(obj):
 		print obj['BA']
 		print obj['GATE']
 		print obj['DNS']
-		print obj['IP']
 
 	elif obj['type']=='acn':
 		print obj['CIDR']
@@ -78,10 +73,8 @@ def print_response(obj):
 		print obj['BA']
 		# print obj['GATE']
 		# print obj['DNS']
-		print obj['IP']
 def main():
 	inp = sys.argv
-	print 
 	if len(sys.argv) == 1:
 		client(str(getHwAddr('enp2s0')).upper())
 		pass
