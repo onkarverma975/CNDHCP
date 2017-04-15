@@ -28,12 +28,13 @@ def fun_server():
     # print('Listening at {}'.format(dsocket.getsockname()))
     while True:
         data , address = dsocket.recvfrom(MAX_BYTES)
-        # print 'received a request',data
+        
 
         #Find Discover Package
         obj = json.loads(data)
 
         if obj['type']=='offer':
+            print 'received a request from MAC address', obj['mac']
                         
             ret = server.new_client(obj['mac'])
             

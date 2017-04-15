@@ -71,8 +71,8 @@ def print_response(obj):
 		print obj['CIDR']
 		print obj['NA']
 		print obj['BA']
-		# print obj['GATE']
-		# print obj['DNS']
+		print obj['GATE']
+		print obj['DNS']
 def main():
 	inp = sys.argv
 	if len(sys.argv) == 1:

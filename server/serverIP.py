@@ -204,6 +204,10 @@ class ServerIPs():
             return
 
         self.BA = add_full_range(list(self.network), list(self.mask))[0]
+        temp = list(self.network)
+        add_IP(temp, self.network, self.mask)
+        self.DNS = temp
+        self.GATE = temp
         # self.lac = list(self.network)
         if len(self.hosts)-1>0:
             self.lac = list(self.hosts[len(self.hosts)-1]['BA'])
@@ -310,10 +314,10 @@ class ServerIPs():
         ret['NA'] = '.'.join(map(str, self.network))
         ret['BA'] = '.'.join(map(str, self.BA))
         self.extras.append((('.'.join(map(str, self.lac))),mac))
-
+        ret['DNS'] =  '.'.join(map(str, self.DNS))
+        ret['GATE'] =  '.'.join(map(str, self.GATE))
         return ret,'hello'
-        # ret['DNS'] = host['first']
-        # ret['GATE'] = host['first']
+        
 
     def new_client(self,mac):
         
